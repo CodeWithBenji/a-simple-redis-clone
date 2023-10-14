@@ -3,8 +3,9 @@ package resp
 import (
 	"bufio"
 	"io"
-	"log"
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -106,19 +107,19 @@ func (r *Response) Read() (RespValue, error) {
 		return RespValue{}, err
 	}
 	switch OpType {
-	case STRING:
+	case ARRAY:
 		return r.readArray()
 	case BULK_STRING:
 		return r.readBulk()
 	default:
-		log.Println("Unkown value type: %v", OpType)
+		log.Errorf("Unkown value type: %v", OpType)
 		return RespValue{}, nil
 
 	}
 }
 
 func (v RespValue) Marshal() []byte {
-	switch v.typ {
+	switch v.Type {
 	case "array":
 		return v.marshalArray()
 	case "bulk":
