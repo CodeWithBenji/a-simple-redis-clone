@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"sync"
@@ -122,14 +123,32 @@ func Exists(args []resp.RespValue) resp.RespValue {
 }
 
 func Keys(args []resp.RespValue) resp.RespValue {
-	v := reflect.ValueOf(SETs)
-	keys := make([]interface{}, 0, v.Len())
-	for _, k := range v.MapKeys() {
-		keys = append(keys, k.Interface())
+	var pattern string
+	if len(args) > 0 {
+		pattern = args[0].Bulk
+	} else {
+		pattern = "*"
 	}
+	v := reflect.ValueOf(SETs)
+	keys := []resp.RespValue{}
+	fmt.Println(v)
+	for _, k := range v.MapKeys() {
+		b, err := filepath.Match(pattern, k.String())
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(b)
+		if b {
+			key := resp.RespValue{}
+			key.Type = "bulk"
+			key.Bulk = k.String()
+			keys = append(keys, key)
+		}
+	}
+
 	fmt.Println(keys)
 
-	return resp.RespValue{Type: "array", String: "OK"}
+	return resp.RespValue{Type: "array", Array: keys}
 }
 
 // func Keys(m map[int]interface{}) []int {
