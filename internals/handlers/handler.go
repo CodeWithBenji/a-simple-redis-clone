@@ -22,6 +22,7 @@ var Handlers = map[string]func([]resp.RespValue) resp.RespValue{
 	"COPY":   Copy,
 	"EXISTS": Exists,
 	"KEYS":   Keys,
+	"RENAME": Rename,
 }
 
 func ping(args []resp.RespValue) resp.RespValue {
@@ -151,12 +152,23 @@ func Keys(args []resp.RespValue) resp.RespValue {
 	return resp.RespValue{Type: "array", Array: keys}
 }
 
-// func Keys(m map[int]interface{}) []int {
-//     keys := make([]int, len(m))
-//     i := 0
-//     for k := range m {
-//         keys[i] = k
-//         i++
-//     }
-//     return keys
-// }
+func Rename(args []resp.RespValue) resp.RespValue {
+	if len(args) != 2 {
+		return resp.RespValue{Type: "error", String: "ERR wrong number of arguments for 'rename' command"}
+	}
+	key := args[0].Bulk
+	new_key := args[1].Bulk
+	SETsMu.RLock()
+	value, ok := SETs[key]
+	SETsMu.RUnlock()
+	SETsMu.Lock()
+	SETs[new_key] = value
+	SETsMu.Unlock()
+	SETsMu.Lock()
+	delete(SETs, key)
+	SETsMu.Unlock()
+	if !ok {
+		return resp.RespValue{Type: "null"}
+	}
+	return resp.RespValue{Type: "string", String: "OK"}
+}
